@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "JusticeLegal",
-    "slug": "JusticeLegal",
+    "slug": "justicelegal",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -19,10 +19,24 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.zenwebmaniasolutions.JusticeLegal"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "83da8e6a-bd27-40ae-acd5-37736259d44b"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6f9607fd-9c11-46fc-b1d7-ff767ca321c2"
+    },
+    "owner": "zenwebmaniasolution"
   }
 }
+            

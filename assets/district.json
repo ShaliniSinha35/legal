@@ -1,0 +1,38 @@
+{
+    "Bihar": [
+      { "district_name": "Patna" },
+      { "district_name": "Gaya" },
+      { "district_name": "Bhagalpur" },
+      { "district_name": "Muzaffarpur" },
+      { "district_name": "Nalanda" }
+    ],
+    "Uttar Pradesh": [
+      { "district_name": "Lucknow" },
+      { "district_name": "Kanpur" },
+      { "district_name": "Varanasi" },
+      { "district_name": "Agra" },
+      { "district_name": "Prayagraj" }
+    ],
+    "Maharashtra": [
+      { "district_name": "Mumbai" },
+      { "district_name": "Pune" },
+      { "district_name": "Nagpur" },
+      { "district_name": "Nashik" },
+      { "district_name": "Aurangabad" }
+    ],
+    "Rajasthan": [
+      { "district_name": "Jaipur" },
+      { "district_name": "Jodhpur" },
+      { "district_name": "Udaipur" },
+      { "district_name": "Ajmer" },
+      { "district_name": "Bikaner" }
+    ],
+    "Kerala": [
+      { "district_name": "Thiruvananthapuram" },
+      { "district_name": "Kochi" },
+      { "district_name": "Kozhikode" },
+      { "district_name": "Kollam" },
+      { "district_name": "Thrissur" }
+    ]
+  }
+  
