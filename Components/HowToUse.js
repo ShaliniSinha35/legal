@@ -43,6 +43,7 @@ const HowToUse = () => {
     },
   ];
 
+
   const renderUseList = ({ item }) => {
     return (
       <TouchableOpacity style={styles.listContainer} key={item.id}>

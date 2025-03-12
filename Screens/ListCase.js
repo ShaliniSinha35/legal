@@ -20,57 +20,162 @@ import {
   SelectItem,
 } from "@ui-kitten/components";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from 'expo-image-manipulator';
+
 import { MaterialIcons } from "@expo/vector-icons";
 import { FontAwesome5 } from "@expo/vector-icons";
 import axios from "axios";
 import { api } from "../ApiUrl";
 
-const courtType = ["High Court", "District Court"];
+// const courtType = ["High Court", "District Court"];
 const courtName = ["option 1", "option 2", "option 3"];
-const caseType = ["option 1", "option 2", "option 3"];
+// const caseType = ["option 1", "option 2", "option 3"];
 
 const ListCase = ({ navigation }) => {
 
   const { control, handleSubmit, setValue, watch, formState: { errors }, } = useForm();
   const [whoAreYou, setWhoAreYou] = useState("plaintiff");
-  const [images, setImages] = useState([]);
-  const [selectedCourts, setSelectedCourts] = useState(new IndexPath(0));
-  const [selectCourtNames, setSelectCourtNames] = useState([]);
-  const [selectedCaseType,setSelectedCaseType]= useState(new IndexPath(0))
 
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true, // Allows multiple image selection
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setImages([...images, ...result.assets.map((img) => img.uri)]); // Add new images to the array
-    }
-  };
-
-  const deleteImage = (index) => {
-    const updatedImages = images.filter((_, i) => i !== index);
-    setImages(updatedImages);
-  };
-
-  const onSubmit = (data) => {
-    console.log("Form Data:", { ...data, whoAreYou,images });
-  };
+  const [courtType,setCourtType]= useState([])
+  const [selectCourtTypeName,setSelectCourtTypeName]= useState(new IndexPath(0))
 
 
-  
+  const [images, setImages] = useState(null);
+
+  const [allCourtNames,setAllCourtNames]= useState([])
+  const [selectedCourtIndex, setSelectedCourtIndex] = useState(new IndexPath(0));
+  // const [selectCourtNames, setSelectCourtNames] = useState([]);
+
+const [caseTypes,setAllCaseTypes]=useState([])
+const [selectedCaseType,setSelectedCaseType]= useState(new IndexPath(0))
+ 
   const [selectedStateIndex, setSelectedStateIndex] = useState(new IndexPath(0));
   const [selectedDistrictIndex, setSelectedDistrictIndex] = useState(new IndexPath(0));
   const [allStates, setAllStates] = useState([]);
   const [allDistricts,setAllDistricts]= useState([])
 
+  const [documents,setDocuments]= useState(null)
 
+
+   const courtTypeName= courtType[selectCourtTypeName.row]?.name || 'Select a court type'
   const selectedStateName =  allStates[selectedStateIndex.row]?.name || 'Select a State';
   const selectedDistrictName =  allDistricts[selectedDistrictIndex.row]?.name || 'Select a District';
+  const selectedCourtName= allCourtNames[selectedCourtIndex.row]?.name || 'Select Court Name'
+const caseTypeName= caseTypes[selectedCaseType.row]?.name || 'Select Case type'
 
-  // 🔹 Fetch States on Component Mount
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      quality: 1,
+    });
+    console.log(result)
+
+    if (!result.canceled) {
+      const resizedImage = await ImageManipulator.manipulateAsync(
+        result.assets[0].uri,
+        [{ resize: { width: 300 } }], 
+        { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG } 
+      );
+  console.log(resizedImage)
+     
+      setImages(resizedImage.uri);
+    }
+  };
+
+  const deleteImage = (index) => {
+    // const updatedImages = images.filter((_, i) => i !== index);
+    setImages(null);
+  };
+
+
+  const uploadDocuments = async () => {
+    try {
+     
+      const uniqueName = `Doc_${Math.floor(Math.random() * 1000)}.jpg`;
+  
+      const formData = new FormData();
+      formData.append('image', {
+        uri: images, 
+        type: 'image/jpeg', 
+        name: uniqueName, 
+      });
+  
+      const response = await axios.post(`${api}/uploadImage`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        params: {
+          imgName: uniqueName, 
+        },
+      });
+  
+      if (response.data.imageUrl) {
+
+        setDocuments(uniqueName)
+       
+        return uniqueName;
+      } else {
+  
+        Alert.alert('Error', 'Failed to upload Document');
+        return false;
+      }
+    } catch (error) {
+      console.error('Documents upload failed:', error);
+      Alert.alert('Error', 'There was an error uploading the documents.');
+      return false;
+    }
+  };
+  
+
+  const onSubmit = async(data) => {
+    if (!images) {
+      Alert.alert('Error', 'Please upload your documents.');
+      return;
+    }
+
+    const docRes= await uploadDocuments(images)
+    console.log(docRes)
+
+    console.log("Form Data:", { ...data, whoAreYou,images });
+
+    const stateId = allStates[selectedStateIndex.row]?.sid;
+    const districtId = allDistricts[selectedDistrictIndex.row]?.did;
+    const courtTypeId = courtType[selectCourtTypeName.row]?.court_id;
+    const caseTypeId= caseTypes[selectedCaseType.row]?.case_id
+    const courtNameId= allCourtNames[selectedCourtIndex.row]?.courtnew_id || allCourtNames[selectedCourtIndex.row]?.courtdist_id 
+    console.log(stateId,districtId,courtTypeId,caseTypeId)
+    const case_list_id = `CAS_${Math.floor(Math.random() * 1000)}`;
+    const results= {
+      case_list_id:case_list_id,
+      way:whoAreYou,
+      court_type_id:courtTypeId,
+      court_name_id:courtNameId,
+      state_id:courtType[selectCourtTypeName.row]?.name== "District Court"?stateId:null,
+      districtId:courtType[selectCourtTypeName.row]?.name== "District Court"? districtId :null,
+      case_number:data.caseNumber,
+      case_type:caseTypes[selectedCaseType.row]?.case_id,
+      name:data.name,
+      mobile_number:data.mobile,
+      email:data.email,
+      address:data.address,
+      upload_document:docRes,
+
+    }
+    try {
+      const response = await axios.post(`${api}/case-list`, results);
+      if (response.status === 201) {
+        alert('Case added successfully');
+      } else {
+        alert('Failed to add case');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      alert('Error submitting case');
+    }
+  };
+
+
   useEffect(() => {
     const getAllStates = async () => {
       try {
@@ -83,14 +188,13 @@ const ListCase = ({ navigation }) => {
     getAllStates();
   }, []);
 
-  // 🔹 When a state is selected, reset district selection and fetch new b    districts
   useEffect(() => {
     const fetchDistricts = async () => {
-      if (allStates.length === 0) return; // Ensure states are loaded
+      if (allStates.length === 0) return; 
       const selectedStateId = allStates[selectedStateIndex.row]?.sid;
+      
       if (!selectedStateId) return;
 
-      // ✅ Keep district dropdown enabled while data is being fetched
       setAllDistricts([]);
       setSelectedDistrictIndex(new IndexPath(0));
 
@@ -104,6 +208,80 @@ const ListCase = ({ navigation }) => {
 
     fetchDistricts();
   }, [selectedStateIndex, allStates]);
+
+  const getCourtType=async()=>{
+      try{
+         const res= await axios.get("http://192.168.0.110:3005/legal/court_type")
+         const data= res.data
+         setCourtType(data)
+      }
+      catch(err){
+        console.log(err.message)
+      }
+  }
+
+  useEffect(()=>{
+    getCourtType()
+  },[])
+
+
+
+  const getDistrictCourtName = async () => {
+    const stateId = allStates[selectedStateIndex.row]?.sid;
+    const districtId = allDistricts[selectedDistrictIndex.row]?.did;
+    const courtTypeId = courtType[selectCourtTypeName.row]?.court_id;
+  
+    try {
+      const res = await axios.get(
+        `${api}/DistrictCourtNames`,
+        { params: { sid: stateId, did: districtId, court_id: courtTypeId } } 
+      );
+      setAllCourtNames(res.data)
+    } catch (err) {
+      console.log(err.message, "147");
+    }
+  };
+  const getHighCourtName = async () => {
+    const courtTypeId = courtType[selectCourtTypeName.row]?.court_id;
+  
+    try {
+      const res = await axios.get(
+        `${api}/HighCourtNames`,
+        { params: { court_id: courtTypeId } } 
+      );
+      setAllCourtNames(res.data)
+    } catch (err) {
+      console.log(err.message, "147");
+    }
+  };
+
+  const getCaseTypes = async () => {
+    const courtTypeId = courtType[selectCourtTypeName.row]?.court_id;
+  
+    try {
+      const res = await axios.get(
+        `${api}/caseType`,
+        { params: { court_id: courtTypeId } } 
+      );
+setAllCaseTypes(res.data)
+    } catch (err) {
+      console.log(err.message, "147");
+    }
+  };
+  
+  useEffect(()=>{
+    if(courtType[selectCourtTypeName.row]?.name== "District Court"){
+      getDistrictCourtName()
+
+    }
+    else{
+      getHighCourtName()
+    }
+  },[selectedStateName,selectCourtTypeName,])
+
+  useEffect(()=>{
+    getCaseTypes()
+  },[courtTypeName])
 
   return (
     <KeyboardAvoidingView
@@ -191,24 +369,30 @@ const ListCase = ({ navigation }) => {
         status="warning"
         label="Court Type"
         size="large"
-        value={courtType[selectedCourts.row]}
-        selectedIndex={selectedCourts}
+        value={courtTypeName}
+        selectedIndex={selectCourtTypeName}
         onSelect={(index) => {
-          setSelectedCourts(index);
-          onChange(courtType[index.row]);
+          setSelectCourtTypeName(index);
+          onChange(courtType[index.row].name);
         }}
+
         style={[styles.input, { marginTop: 10, backgroundColor: "#fff" }]}
       >
-        {courtType.map((title, index) => (
-          <SelectItem key={index} title={title} />
-        ))}
+        {
+        courtType.length!=0 &&
+        courtType.map((court, index) => (
+          <SelectItem key={court.court_id} title={court.name} />
+        ))
+        
+        }
       </Select>
       {errors.court && <Text style={styles.errorText}>{errors.court.message}</Text>}
     </>
   )}
 />
 
-            {courtType[selectedCourts.row] == "District Court" && (
+
+            {courtType[selectCourtTypeName.row]?.name== "District Court" && (
                    <>
 
     <Controller
@@ -219,6 +403,7 @@ const ListCase = ({ navigation }) => {
                        <>
                          <Select
                            label="State"
+                           size="large"
                            status="warning"
                            style={styles.select}
                            placeholder="Select a State"
@@ -226,8 +411,7 @@ const ListCase = ({ navigation }) => {
                            selectedIndex={selectedStateIndex}
                            onSelect={(index) => {
                              setSelectedStateIndex(index);
-                             console.log(allStates[index.row].name)
-                             onChange(allStates[index.row].name); // Trigger validation
+                             onChange(allStates[index.row].name); 
                            }}
                          >
                            {allStates.map((state) => (
@@ -247,6 +431,7 @@ const ListCase = ({ navigation }) => {
                      render={({ field: { onChange } }) => (
                        <>
                          <Select
+                         size="large"
                            label="District"
                            status="warning"
                            style={styles.select}
@@ -316,21 +501,20 @@ const ListCase = ({ navigation }) => {
         status="warning"
         label="Court Name"
         size="large"
-        multiSelect={true}
-        value={selectCourtNames.map((index) => courtName[index.row]).join(", ")}
-        selectedIndex={selectCourtNames}
+        // multiSelect={true}
+        value={ selectedCourtName}
+        selectedIndex={selectedCourtIndex}
         onSelect={(index) => {
-          setSelectCourtNames(index);
-             // Extract the selected expertise values
-        const selectedValues = index.map((i) => courtName[i.row]);
+          setSelectedCourtIndex(index);
         
-        // Update form state correctly
-        onChange(selectedValues);
+        onChange(allCourtNames[index.row].name);
         }}
         style={[styles.input, { marginTop: 10, backgroundColor: "#fff" }]}
       >
-        {courtName.map((title, index) => (
-          <SelectItem key={index} title={title} />
+        {
+         allCourtNames.length!==0 &&
+        allCourtNames.map((court, index) => (
+          <SelectItem key={index} title={court.name} />
         ))}
       </Select>
       {errors.courtname && <Text style={styles.errorText}>{errors.courtname.message}</Text>}
@@ -352,16 +536,18 @@ const ListCase = ({ navigation }) => {
         status="warning"
         label="Case Type"
         size="large"
-        value={caseType[selectedCaseType.row]}
+        value={caseTypeName}
         selectedIndex={selectedCaseType}
         onSelect={(index) => {
           setSelectedCaseType(index);
-          onChange(caseType[index.row]);
+          onChange(caseTypes[index.row].name);
         }}
         style={[styles.input, { marginTop: 10, backgroundColor: "#fff" }]}
       >
-        {caseType.map((title, index) => (
-          <SelectItem key={index} title={title} />
+        {
+        caseTypes.length!==0 && 
+        caseTypes.map((caseType, index) => (
+          <SelectItem key={caseType.case_id} title={caseType.name} />
         ))}
       </Select>
       {errors.case && <Text style={styles.errorText}>{errors.case.message}</Text>}
@@ -556,7 +742,7 @@ const ListCase = ({ navigation }) => {
 
           {/* Upload Image */}
 
-          {images && (
+          {/* {images && (
             <FlatList
               data={images}
               showsHorizontalScrollIndicator={false}
@@ -567,7 +753,7 @@ const ListCase = ({ navigation }) => {
                 <View style={styles.imageContainer}>
                   <Image source={{ uri: item }} style={styles.image} />
                   {/* Delete Button */}
-                  <TouchableOpacity
+                  {/* <TouchableOpacity
                     style={styles.deleteButton}
                     onPress={() => deleteImage(index)}
                   >
@@ -586,7 +772,30 @@ const ListCase = ({ navigation }) => {
                 </View>
               )}
             />
-          )}
+          )} */} 
+          {console.log(images)}
+          {images && 
+          
+          <View style={styles.imageContainer}>
+          <Image source={{ uri: images }} style={styles.image} />
+          {/* Delete Button */}
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => deleteImage()}
+          >
+            <Text
+              allowFontScaling={false}
+              style={{ textAlign: "center" }}
+            >
+              {" "}
+              <FontAwesome5
+                name="trash"
+                size={24}
+                color="#555555"
+              />{" "}
+            </Text>
+          </TouchableOpacity>
+        </View>}
 
           <TouchableOpacity onPress={pickImage} style={styles.uploadButton}>
             <MaterialIcons name="cloud-upload" size={20} color="#ffffff" />
@@ -679,7 +888,7 @@ const styles = StyleSheet.create({
 
   image: {
     height: 150,
-    width: 150,
+    width: 100,
     resizeMode: "contain",
   },
   select:{
@@ -691,6 +900,10 @@ const styles = StyleSheet.create({
   },
   deleteButton:{
     marginTop:5
+  },
+  imageContainer:{
+alignItems:"center"   ,
+justifyContent:"center" 
   }
 });
 

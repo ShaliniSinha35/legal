@@ -25,42 +25,35 @@ import axios from "axios";
 import { api } from "../ApiUrl";
 
 export default function AdvocateRegistration({ navigation }) {
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
+
   const [gender, setGender] = useState("");
   const [image, setImage] = useState(null);
-  const [selectedCourts, setSelectedCourts] = useState([]);
   const [date, setDate] = useState("");
   const [err, setErr] = useState([]);
-  const courtOptions = ["option 1", "option 2", "option 3", "option 4"];
-  const courtType = ["High Court", "District Court"];
+  const [advImg, setAdvImg] = useState(null);
 
-  // const educationOptions = ["LLB", "LLM", "Diploma in Law", "Other"];
   const [educationOptions, setEducationOptions] = useState([]);
-  const experienceOptions = [
-    "Less than 1 year",
-    "1 year",
-    "2 years",
-    "More than 2 years",
-  ];
+  const [experienceOptions, setExperienceOptions] = useState([]);
 
-  // Generate Passout Year Options (1970 - current year)
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: currentYear - 1969 }, (_, i) =>
     (1970 + i).toString()
   );
 
-  // State for Select Inputs
   const [selectedEducation, setSelectedEducation] = useState(null);
   const [selectedExperience, setSelectedExperience] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
-  const [selectedCourtType, setSelectedCourtType] = useState(new IndexPath(0));
-
-  const expertiseOptions = [
-    "Criminal Law",
-    "Civil Law",
-    "Corporate Law",
-    "Family Law",
-    "Other",
-  ];
+  const [selectedCourtType, setSelectedCourtType] = useState(null);
+  const [allCourtNames, setAllCourtNames] = useState([]);
+  const [selectedCourtIndex, setSelectedCourtIndex] = useState(
+    new IndexPath(0)
+  );
+  const [expertiseOptions, setExpertiseOptions] = useState([]);
   const [selectedExpertise, setSelectedExpertise] = useState([]);
 
   const CalendarIcon = () => (
@@ -72,81 +65,6 @@ export default function AdvocateRegistration({ navigation }) {
     />
   );
 
-  // Pick an image
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 4],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      // console.log(result.assets);
-      setImage(result.assets[0].uri);
-      setValue("image", result.assets[0].uri);
-    }
-  };
-
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm();
-
-  const validateForm = () => {
-    let err = {};
-
-    console.log(image, gender, date, "54");
-
-    if (!image) {
-      err.image = "Upload your image";
-    }
-    if (!date) {
-      err.dob = "Enter your D.O.B";
-    }
-    if (!gender) {
-      err.gender = "Enter your gender";
-    }
-
-    console.log(err);
-    setErr({ ...err });
-
-    // If there are errors, return false, otherwise return true
-    if (Object.keys(err).length > 0) {
-      return false;
-    } else {
-      return true;
-    }
-  };
-
-  // useEffect(() => {
-  //   validateForm();
-  // }, [onSubmit]);
-
-  const onSubmit = (data) => {
-    console.log("submit");
-    console.log(validateForm());
-    if (validateForm()) {
-      console.log("Form Submitted", data);
-    } else {
-      console.log("not validated");
-    }
-  };
-
-  const getEducationOptions = async () => {
-    try {
-      const res = await axios.get(`${api}/qualification`);
-      const data = res.data;
-      setEducationOptions(data);
-    } catch (err) {
-      console.log(err.message);
-    }
-  };
-  useEffect(() => {
-    getEducationOptions();
-  }, []);
-
   const [selectedStateIndex, setSelectedStateIndex] = useState(
     new IndexPath(0)
   );
@@ -155,13 +73,71 @@ export default function AdvocateRegistration({ navigation }) {
   );
   const [allStates, setAllStates] = useState([]);
   const [allDistricts, setAllDistricts] = useState([]);
-
+  const [courtType, setCourtType] = useState([]);
+  const [selectCourtTypeName, setSelectCourtTypeName] = useState(
+    new IndexPath(0)
+  );
+  const courtTypeName =
+    courtType[selectCourtTypeName.row]?.name || "Select a court type";
   const selectedStateName =
     allStates[selectedStateIndex.row]?.name || "Select a State";
   const selectedDistrictName =
     allDistricts[selectedDistrictIndex.row]?.name || "Select a District";
+  const selectedCourtName =
+    allCourtNames[selectedCourtIndex.row]?.name || "Select Court Name";
 
-  // 🔹 Fetch States on Component Mount
+  const getExpertiseOptions = async () => {
+    try {
+      const res = await axios.get(`${api}/expertise`);
+      const data = res.data;
+      setExpertiseOptions(data);
+    } catch (err) {
+      console.log(err.message);
+    }
+  };
+
+  const getExperienceOptions = async () => {
+    try {
+      const res = await axios.get(`${api}/experience`);
+      const data = res.data;
+      setExperienceOptions(data);
+    } catch (err) {
+      console.log(err.message);
+    }
+  };
+
+  const getEducationOptions = async () => {
+    try {
+      const res = await axios.get(`${api}/qualification`);
+      const data = res.data;
+
+      setEducationOptions(data);
+    } catch (err) {
+      console.log(err.message);
+    }
+  };
+
+  useEffect(() => {
+    getEducationOptions();
+    getExpertiseOptions();
+    getExperienceOptions();
+  }, []);
+
+  const getCourtType = async () => {
+    try {
+      const res = await axios.get("http://192.168.0.110:3005/legal/court_type");
+      const data = res.data;
+
+      setCourtType(data);
+    } catch (err) {
+      console.log(err.message);
+    }
+  };
+
+  useEffect(() => {
+    getCourtType();
+  }, []);
+
   useEffect(() => {
     const getAllStates = async () => {
       try {
@@ -174,7 +150,6 @@ export default function AdvocateRegistration({ navigation }) {
     getAllStates();
   }, []);
 
-  // 🔹 When a state is selected, reset district selection and fetch new b    districts
   useEffect(() => {
     const fetchDistricts = async () => {
       if (allStates.length === 0) return; // Ensure states are loaded
@@ -196,10 +171,142 @@ export default function AdvocateRegistration({ navigation }) {
     fetchDistricts();
   }, [selectedStateIndex, allStates]);
 
+  const getDistrictCourtName = async () => {
+    const stateId = allStates[selectedStateIndex.row]?.sid;
+    const districtId = allDistricts[selectedDistrictIndex.row]?.did;
+    const courtTypeId = courtType[selectCourtTypeName.row]?.court_id;
+
+    try {
+      const res = await axios.get(`${api}/DistrictCourtNames`, {
+        params: { sid: stateId, did: districtId, court_id: courtTypeId },
+      });
+      setAllCourtNames(res.data);
+    } catch (err) {
+      console.log(err.message, "147");
+    }
+  };
+  const getHighCourtName = async () => {
+    const courtTypeId = courtType[selectCourtTypeName.row]?.court_id;
+
+    try {
+      const res = await axios.get(`${api}/HighCourtNames`, {
+        params: { court_id: courtTypeId },
+      });
+      setAllCourtNames(res.data);
+    } catch (err) {
+      console.log(err.message, "147");
+    }
+  };
+
+  useEffect(() => {
+    if (courtType[selectCourtTypeName.row]?.name == "District Court") {
+      getDistrictCourtName();
+    } else {
+      getHighCourtName();
+    }
+  }, [selectedStateName, selectCourtTypeName]);
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 4],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      // console.log(result.assets);
+      setImage(result.assets[0].uri);
+      setValue("image", result.assets[0].uri);
+    }
+  };
+
+  const uploadImage = async () => {
+    try {
+      const uniqueName = `ADC_${Math.floor(Math.random() * 1000)}.jpg`;
+
+      const formData = new FormData();
+      formData.append("image", {
+        uri: image,
+        type: "image/jpeg",
+        name: uniqueName,
+      });
+
+      const response = await axios.post(`${api}/uploadImage`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        params: {
+          imgName: uniqueName,
+        },
+      });
+
+      if (response.data.imageUrl) {
+        setAdvImg(uniqueName);
+
+        return uniqueName;
+      } else {
+        Alert.alert("Error", "Failed to upload Document");
+        return false;
+      }
+    } catch (error) {
+      console.error("Documents upload failed:", error);
+      Alert.alert("Error", "There was an error uploading the documents.");
+      return false;
+    }
+  };
+
+  const onSubmit = async (data) => {
+    console.log("submit",data);
+    let uploadRes = null;
+    if (image) {
+      uploadRes = await uploadImage();
+    }
+
+    const results = {
+      advct_id: `ADV_${Math.floor(Math.random() * 10000)}`,
+      name: data.name,
+      mobileNumber: data.mobile,
+      email: data.email,
+      dob: data.dob,
+      gender: data.gender,
+      wcrn: data.wardRegNumber,
+      currentAddress: data.currentAddress,
+      city: data.city,
+      heducation: educationOptions[selectedEducation?.row]?.qid,
+      pyear: data.passOutYear,
+      exp: experienceOptions[selectedExperience?.row]?.exy_id,
+      courtType: courtType[selectCourtTypeName?.row]?.court_id,
+      state_id:
+        courtType[selectCourtTypeName?.row]?.name === "District Court"
+          ? allStates[selectedStateIndex.row]?.sid
+          : null,
+      districtId:
+        courtType[selectCourtTypeName?.row]?.name === "District Court"
+          ? allDistricts[selectedDistrictIndex.row]?.did
+          : null,
+      pcName:
+        allCourtNames[selectedCourtIndex?.row]?.courtnew_id ||
+        allCourtNames[selectedCourtIndex?.row]?.courtdist_id,
+      expertise: data.expertise?.map((item) => item.exp_id) || [],
+      uploadDocument: uploadRes,
+    };
+
+    try {
+      const response = await axios.post(`${api}/add-advocate`, results);
+
+      if (response.status === 201) {
+        alert("Registered successfully");
+      } else {
+        alert("Failed to add Advocate");
+      }
+    } catch (err) {
+      console.error("Error:", err);
+      alert("Error registering");
+    }
+  };
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* {console.log(err)} */}
-
       <View
         style={{
           flexDirection: "row",
@@ -233,8 +340,8 @@ export default function AdvocateRegistration({ navigation }) {
           <TextInput
             theme={{
               colors: {
-                primary: "#edae49", // Change focused outline color
-                text: "#e09f3e", // Change text color
+                primary: "#edae49", 
+                text: "#e09f3e",
               },
             }}
             label="Full Name"
@@ -259,8 +366,8 @@ export default function AdvocateRegistration({ navigation }) {
           <TextInput
             theme={{
               colors: {
-                primary: "#edae49", // Change focused outline color
-                text: "#e09f3e", // Change text color
+                primary: "#edae49",
+                text: "#e09f3e", 
               },
             }}
             label="Mobile"
@@ -298,8 +405,8 @@ export default function AdvocateRegistration({ navigation }) {
           <TextInput
             theme={{
               colors: {
-                primary: "#edae49", // Change focused outline color
-                text: "#e09f3e", // Change text color
+                primary: "#edae49", 
+                text: "#e09f3e", 
               },
             }}
             label="Email"
@@ -316,19 +423,25 @@ export default function AdvocateRegistration({ navigation }) {
       )}
       {/* Date of Birth */}
 
-      <Datepicker
-        size="large"
-        status="warning"
-        placeholder="D.O.B"
-        date={date}
-        min={new Date(1900, 0, 1)}
-        max={new Date()}
-        onSelect={(nextDate) => setDate(nextDate)}
-        accessoryRight={CalendarIcon}
+      <Controller
+        control={control}
+        name="dob"
+        rules={{ required: "Date of Birth is required" }}
+        render={({ field: { onChange, value } }) => (
+          <Datepicker
+            size="large"
+            status="warning"
+            placeholder="D.O.B"
+            date={value}
+            min={new Date(1900, 0, 1)}
+            max={new Date()}
+            onSelect={onChange}
+            accessoryRight={CalendarIcon}
+          />
+        )}
       />
-      {console.log(err, "263")}
 
-      {err.dob && <Text style={styles.errorText}>{err.dob}</Text>}
+      {errors.dob && <Text style={styles.errorText}>{errors.dob.message}</Text>}
       {/* Gender */}
       <Text style={{ marginTop: 5 }}>Gender:</Text>
       <Controller
@@ -337,7 +450,10 @@ export default function AdvocateRegistration({ navigation }) {
         rules={{ required: "Please select your gender" }}
         render={({ field: { onChange, value } }) => (
           <RadioButton.Group
-            onValueChange={(val) => onChange(val)}
+            onValueChange={(val) => {
+              setGender(val);
+              onChange(val);
+            }}
             value={value}
           >
             <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -351,18 +467,21 @@ export default function AdvocateRegistration({ navigation }) {
           </RadioButton.Group>
         )}
       ></Controller>
-      {err.gender && <Text style={styles.errorText}>{err.gender.message}</Text>}
+      {errors.gender && (
+        <Text style={styles.errorText}>{errors.gender.message}</Text>
+      )}
 
       {/* Ward Counseling Registration Number */}
       <Controller
         control={control}
         name="wardRegNumber"
+        rules={{ required: "Enter your Reg. number" }}
         render={({ field: { onChange, value } }) => (
           <TextInput
             theme={{
               colors: {
-                primary: "#edae49", // Change focused outline color
-                text: "#e09f3e", // Change text color
+                primary: "#edae49",
+                text: "#e09f3e",
               },
             }}
             label="Ward counseling Reg. Number"
@@ -387,8 +506,8 @@ export default function AdvocateRegistration({ navigation }) {
           <TextInput
             theme={{
               colors: {
-                primary: "#edae49", // Change focused outline color
-                text: "#e09f3e", // Change text color
+                primary: "#edae49",
+                text: "#e09f3e",
               },
             }}
             label="Current Address"
@@ -405,7 +524,7 @@ export default function AdvocateRegistration({ navigation }) {
       )}
 
       {/* City */}
-      {/* <Controller
+      <Controller
         control={control}
         name="city"
         rules={{
@@ -415,8 +534,8 @@ export default function AdvocateRegistration({ navigation }) {
           <TextInput
             theme={{
               colors: {
-                primary: "#edae49", // Change focused outline color
-                text: "#e09f3e", // Change text color
+                primary: "#edae49", 
+                text: "#e09f3e", 
               },
             }}
             label="City"
@@ -426,10 +545,10 @@ export default function AdvocateRegistration({ navigation }) {
             style={styles.input}
           />
         )}
-      /> */}
-      {/* {errors.city && (
+      />
+      {errors.city && (
         <Text style={styles.errorText}>{errors.city.message}</Text>
-      )} */}
+      )}
 
       {/* Higher Education */}
       <Controller
@@ -454,9 +573,10 @@ export default function AdvocateRegistration({ navigation }) {
             status="warning"
             style={styles.input}
           >
-            {educationOptions.map((option, index) => (
-              <SelectItem key={option.qid} title={option.name} />
-            ))}
+            {educationOptions.length != 0 &&
+              educationOptions.map((option, index) => (
+                <SelectItem key={option.qid} title={option.name} />
+              ))}
           </Select>
         )}
       />
@@ -507,18 +627,19 @@ export default function AdvocateRegistration({ navigation }) {
             label="Court Type"
             size="large"
             placeholder="Select Court Type"
-            value={courtType[selectedCourtType.row]}
-            selectedIndex={selectedCourtType}
+            value={courtTypeName}
+            selectedIndex={selectCourtTypeName}
             onSelect={(index) => {
-              setSelectedCourtType(index);
-              onChange(courtType[index.row]);
+              setSelectCourtTypeName(index);
+              onChange(courtType[index.row].name);
             }}
             status="warning"
             style={styles.input}
           >
-            {courtType.map((title, index) => (
-              <SelectItem key={index} title={title} />
-            ))}
+            {courtType.length != 0 &&
+              courtType.map((court, index) => (
+                <SelectItem key={court.court_id} title={court.name} />
+              ))}
           </Select>
         )}
       />
@@ -526,69 +647,113 @@ export default function AdvocateRegistration({ navigation }) {
         <Text style={styles.errorText}>{errors.court.message}</Text>
       )}
 
-      {courtType[selectedCourtType.row] == "District Court" && (
+      {courtType[selectCourtTypeName.row]?.name == "District Court" && (
         <>
-          <Select
-            label="State"
-            status="warning"
-            style={styles.select}
-            placeholder="Select a State"
-            value={selectedStateName}
-            selectedIndex={selectedStateIndex}
-            onSelect={(index) => {
-              setSelectedStateIndex(index);
-            }}
-          >
-            {allStates.map((state) => (
-              <SelectItem key={state.sid} title={state.name} />
-            ))}
-          </Select>
-          {console.log(allStates)}
+          <Controller
+            control={control}
+            name="state"
+            rules={{ required: "State is required" }}
+            render={({ field: { onChange } }) => (
+              <>
+                <Select
+                  label="State"
+                  size="large"
+                  status="warning"
+                  style={styles.select}
+                  placeholder="Select a State"
+                  value={selectedStateName}
+                  selectedIndex={selectedStateIndex}
+                  onSelect={(index) => {
+                    setSelectedStateIndex(index);
+                    onChange(allStates[index.row].name);
+                  }}
+                >
+                  {allStates.map((state) => (
+                    <SelectItem key={state.sid} title={state.name} />
+                  ))}
+                </Select>
+                {errors.state && (
+                  <Text style={styles.errorText}>{errors.state.message}</Text>
+                )}
+              </>
+            )}
+          />
 
           {/* District Select Dropdown */}
-          <Select
-            label="District"
-            style={styles.select}
-            status="warning"
-            placeholder="Select a District"
-            value={selectedDistrictName}
-            selectedIndex={selectedDistrictIndex}
-            onSelect={(index) => {
-              setSelectedDistrictIndex(index);
-            }}
-            disabled={allDistricts.length === 0 && selectedStateName !== null}
-          >
-            {allDistricts.length > 0
-              ? allDistricts.map((district) => (
-                  <SelectItem key={district.did} title={district.name} />
-                ))
-              : [
-                  <SelectItem
-                    key="loading"
-                    title="Loading districts..."
-                    disabled
-                  />,
-                ]}
-          </Select>
+          <Controller
+            control={control}
+            name="district"
+            rules={{ required: "District is required" }}
+            render={({ field: { onChange } }) => (
+              <>
+                <Select
+                  size="large"
+                  label="District"
+                  status="warning"
+                  style={styles.select}
+                  placeholder="Select a District"
+                  value={selectedDistrictName}
+                  selectedIndex={selectedDistrictIndex}
+                  onSelect={(index) => {
+                    setSelectedDistrictIndex(index);
+                    onChange(allDistricts[index.row].name);
+                  }}
+                  disabled={
+                    allDistricts.length === 0 && selectedStateName !== null
+                  }
+                >
+                  {allDistricts.length > 0
+                    ? allDistricts.map((district) => (
+                        <SelectItem key={district.did} title={district.name} />
+                      ))
+                    : [
+                        <SelectItem
+                          key="loading"
+                          title="Loading districts..."
+                          disabled
+                        />,
+                      ]}
+                </Select>
+                {errors.district && (
+                  <Text style={styles.errorText}>
+                    {errors.district.message}
+                  </Text>
+                )}
+              </>
+            )}
+          />
 
+          {/* PIN Code Input */}
           <Controller
             control={control}
             name="pin"
+            rules={{
+              required: "PIN Code is required",
+              pattern: {
+                value: /^[0-9]{6}$/, 
+                message: "Enter a valid 6-digit PIN Code",
+              },
+            }}
             render={({ field: { onChange, value } }) => (
-              <TextInput
-                theme={{
-                  colors: {
-                    primary: "#e9c462", // Change focused outline color
-                    text: "#e09f3e", // Change text color
-                  },
-                }}
-                mode="outlined"
-                label="PIN Code"
-                keyboardType="numeric"
-                value={value}
-                onChangeText={onChange}
-                style={styles.input}
-              />
+              <>
+                <TextInput
+                  theme={{
+                    colors: {
+                      primary: "#e9c462",
+                      text: "#e09f3e",
+                    },
+                  }}
+                  mode="outlined"
+                  label="PIN Code"
+                  keyboardType="numeric"
+                  value={value}
+                  onChangeText={onChange}
+                  style={styles.input}
+                />
+                {errors.pin && (
+                  <Text style={styles.errorText}>{errors.pin.message}</Text>
+                )}
+              </>
             )}
           />
         </>
@@ -604,27 +769,27 @@ export default function AdvocateRegistration({ navigation }) {
             status="warning"
             size="large"
             label="Practice Court"
-            // multiSelect={true}
 
-            value={
-              selectedCourts !== null
-                ? courtOptions[selectedCourts.row]
-                : "Select Practice Court"
-            }
-            selectedIndex={selectedCourts}
+            value={selectedCourtName}
+            selectedIndex={selectedCourtIndex}
             onSelect={(index) => {
-              setSelectedCourts(index);
+              setSelectedCourtIndex(index);
 
-              onChange(courtOptions[index.row]);
+              onChange(allCourtNames[index.row].name);
             }}
             style={[styles.input, { marginTop: 10, backgroundColor: "#fff" }]}
           >
-            {courtOptions.map((title, index) => (
-              <SelectItem key={index} title={title} />
-            ))}
+            {allCourtNames.length !== 0 &&
+              allCourtNames.map((court, index) => (
+                <SelectItem key={index} title={court.name} />
+              ))}
           </Select>
         )}
       ></Controller>
+
+      {errors.practiceCourts && (
+        <Text style={styles.errorText}>{errors.practiceCourts.message}</Text>
+      )}
 
       {/* Experience */}
       <Controller
@@ -638,7 +803,7 @@ export default function AdvocateRegistration({ navigation }) {
             placeholder="Select Experience"
             value={
               selectedExperience !== null
-                ? experienceOptions[selectedExperience.row]
+                ? experienceOptions[selectedExperience.row].name
                 : "Select Experience"
             }
             selectedIndex={selectedExperience}
@@ -649,8 +814,8 @@ export default function AdvocateRegistration({ navigation }) {
             status="warning"
             style={styles.input}
           >
-            {experienceOptions.map((title, index) => (
-              <SelectItem key={index} title={title} />
+            {experienceOptions.map((list, index) => (
+              <SelectItem key={list.exy_id} title={list.name} />
             ))}
           </Select>
         )}
@@ -671,23 +836,21 @@ export default function AdvocateRegistration({ navigation }) {
             multiSelect={true}
             placeholder="Select your expertise"
             value={selectedExpertise
-              .map((index) => expertiseOptions[index.row])
+              .map((index) => expertiseOptions[index.row].name)
               .join(", ")}
             selectedIndex={selectedExpertise}
             onSelect={(index) => {
               setSelectedExpertise(index);
 
-              // Extract the selected expertise values
               const selectedValues = index.map((i) => expertiseOptions[i.row]);
 
-              // Update form state correctly
               onChange(selectedValues);
             }}
             status="warning"
             style={styles.input}
           >
-            {expertiseOptions.map((title, index) => (
-              <SelectItem key={index} title={title} />
+            {expertiseOptions.map((list, index) => (
+              <SelectItem key={list.exp_id} title={list.name} />
             ))}
           </Select>
         )}
@@ -747,7 +910,7 @@ export default function AdvocateRegistration({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: "#fff", // White background for the whole form
+    backgroundColor: "#fff",
   },
   input: {
     marginBottom: 10,
@@ -767,11 +930,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   submitButton: {
-    backgroundColor: "#333333", // Background color for Civil button
+    backgroundColor: "#333333", 
   },
 
   buttonText: {
-    color: "#ffffff", // Text color
+    color: "#ffffff", 
     fontSize: 18,
     fontWeight: "bold",
     textAlign: "center",
